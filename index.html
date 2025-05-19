@@ -100,25 +100,32 @@
     const thumbnail = document.getElementById('thumbnailPlaceholder');
 
     // Set initial mute button state and show/hide buttons accordingly
-    function updateMuteButton(volume) {
-      if (volume === 0) {
-        muteBtn.textContent = '🔈 Unmute';
-        muteBtn.style.display = '';
-      } else {
-        muteBtn.textContent = '🔇 Mute';
-        muteBtn.style.display = 'none';
-      }
+    function updateMuteButton() {
+      player.getVolume().then(function(volume) {
+        player.getMuted().then(function(isMuted) {
+          // Always show unmute button if muted or volume is 0
+          if (isMuted || volume === 0) {
+            muteBtn.textContent = '🔈 Unmute';
+            muteBtn.style.display = '';
+          } else {
+            muteBtn.textContent = '🔇 Mute';
+            muteBtn.style.display = 'none';
+          }
+        });
+      });
     }
 
-    player.getVolume().then(function(volume) {
-      updateMuteButton(volume);
+    player.ready().then(function() {
+      updateMuteButton();
       fullscreenBtn.style.display = '';
     });
 
     muteBtn.addEventListener('click', function() {
       player.setVolume(1).then(function() {
-        updateMuteButton(1);
-        fullscreenBtn.style.display = '';
+        player.setMuted(false).then(function() {
+          updateMuteButton();
+          fullscreenBtn.style.display = '';
+        });
       });
     });
 
@@ -132,18 +139,14 @@
         muteBtn.style.display = 'none';
         fullscreenBtn.style.display = 'none';
       } else {
-        player.getVolume().then(function(volume) {
-          updateMuteButton(volume);
-          fullscreenBtn.style.display = '';
-        });
+        updateMuteButton();
+        fullscreenBtn.style.display = '';
       }
     });
 
     // Listen for volume changes to bring back unmute button if muted again
     player.on('volumechange', function(data) {
-      player.getVolume().then(function(volume) {
-        updateMuteButton(volume);
-      });
+      updateMuteButton();
     });
 
     // Ensure video starts in 1080p (if available)
