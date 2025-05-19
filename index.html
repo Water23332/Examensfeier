@@ -10,29 +10,30 @@
       padding: 0;
       background: black;
       height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      width: 100%;
+      /* Remove flex centering to allow video to fill screen */
       overflow: hidden;
     }
 
     #videoContainer {
-      position: relative;
-      width: 100%;
-      height: 100%;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
     }
 
     #vimeoIframe {
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       border: none;
+      display: block;
     }
 
     #muteBtn, #fullscreenBtn {
       position: fixed;
       z-index: 10;
-      padding: 15px 25px;
-      font-size: 1.2em;
+      padding: 12px 20px;
+      font-size: 1.1em;
       border: none;
       border-radius: 8px;
       background: rgba(0, 0, 0, 0.7);
@@ -42,7 +43,7 @@
     }
 
     #muteBtn {
-      bottom: 80px;
+      bottom: 140px; /* moved higher */
       left: 50%;
       transform: translateX(-50%);
     }
@@ -55,8 +56,11 @@
 
     @media (max-width: 768px) {
       #muteBtn, #fullscreenBtn {
-        font-size: 1.5em;
-        padding: 20px 30px;
+        font-size: 1.2em; /* slightly bigger on mobile */
+        padding: 16px 24px; /* slightly bigger on mobile */
+      }
+      #muteBtn {
+        bottom: 120px; /* also a bit higher on mobile */
       }
     }
 
@@ -118,6 +122,8 @@
     player.ready().then(function() {
       updateMuteButton();
       fullscreenBtn.style.display = '';
+      // Set fullscreen button text with emoji on the left
+      fullscreenBtn.textContent = '⛶ Fullscreen';
     });
 
     muteBtn.addEventListener('click', function() {
@@ -141,6 +147,7 @@
       } else {
         updateMuteButton();
         fullscreenBtn.style.display = '';
+        fullscreenBtn.textContent = '⛶ Fullscreen'; // ensure emoji is left
       }
     });
 
