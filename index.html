@@ -29,9 +29,9 @@
       display: block;
     }
 
-    #muteBtn, #fullscreenBtn {
+    #actionBtn {
       position: fixed;
-      z-index: 10;
+      z-index: 9999;
       padding: 12px 20px;
       font-size: 1.1em;
       border: none;
@@ -40,27 +40,16 @@
       color: white;
       cursor: pointer;
       transition: opacity 0.5s;
-    }
-
-    #muteBtn {
-      bottom: 140px; /* moved higher */
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    #fullscreenBtn {
-      bottom: 20px;
+      bottom: 40px;
       left: 50%;
       transform: translateX(-50%);
     }
 
     @media (max-width: 768px) {
-      #muteBtn, #fullscreenBtn {
-        font-size: 1.2em; /* slightly bigger on mobile */
-        padding: 16px 24px; /* slightly bigger on mobile */
-      }
-      #muteBtn {
-        bottom: 120px; /* also a bit higher on mobile */
+      #actionBtn {
+        font-size: 1.2em;
+        padding: 16px 24px;
+        bottom: 40px;
       }
     }
 
@@ -92,78 +81,73 @@
       allowfullscreen
       style="width: 100%; height: 100%;">
     </iframe>
-    <button id="muteBtn">🔈 Unmute</button>
-    <button id="fullscreenBtn">⛶ Fullscreen</button>
   </div>
+  <!-- Replace both buttons with a single button -->
+  <button id="actionBtn">🔈 Unmute</button>
   <script src="https://player.vimeo.com/api/player.js"></script>
   <script>
     const iframe = document.getElementById('vimeoIframe');
     const player = new Vimeo.Player(iframe);
-    const muteBtn = document.getElementById('muteBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const actionBtn = document.getElementById('actionBtn');
     const thumbnail = document.getElementById('thumbnailPlaceholder');
 
-    // Set initial mute button state and show/hide buttons accordingly
-    function updateMuteButton() {
+    // Track state for button logic
+    let isMuted = true;
+    let isFullscreen = false;
+
+    function updateActionButton() {
       player.getVolume().then(function(volume) {
-        player.getMuted().then(function(isMuted) {
-          // Always show unmute button if muted or volume is 0
-          if (isMuted || volume === 0) {
-            muteBtn.textContent = '🔈 Unmute';
-            muteBtn.style.display = '';
-          } else {
-            muteBtn.textContent = '🔇 Mute';
-            muteBtn.style.display = 'none';
-          }
+        player.getMuted().then(function(muted) {
+          player.getFullscreen().then(function(fullscreen) {
+            isMuted = muted || volume === 0;
+            isFullscreen = fullscreen;
+            if (isMuted) {
+              actionBtn.textContent = '🔈 Unmute';
+              actionBtn.style.display = '';
+            } else if (!isFullscreen) {
+              actionBtn.textContent = '⛶ Fullscreen';
+              actionBtn.style.display = '';
+            } else {
+              actionBtn.textContent = '🔇 Mute';
+              actionBtn.style.display = '';
+            }
+          });
         });
       });
     }
 
     player.ready().then(function() {
-      updateMuteButton();
-      fullscreenBtn.style.display = '';
-      // Set fullscreen button text with emoji on the left
-      fullscreenBtn.textContent = '⛶ Fullscreen';
+      updateActionButton();
     });
 
-    muteBtn.addEventListener('click', function() {
-      player.setVolume(1).then(function() {
-        player.setMuted(false).then(function() {
-          updateMuteButton();
-          fullscreenBtn.style.display = '';
+    actionBtn.addEventListener('click', function() {
+      if (isMuted) {
+        player.setVolume(1).then(function() {
+          player.setMuted(false).then(function() {
+            updateActionButton();
+          });
         });
-      });
-    });
-
-    fullscreenBtn.addEventListener('click', function() {
-      player.requestFullscreen();
-    });
-
-    // Hide buttons when entering fullscreen, show when exiting if still muted
-    player.on('fullscreenchange', function(data) {
-      if (data.fullscreen) {
-        // Only hide fullscreen button, keep mute button visible
-        fullscreenBtn.style.display = 'none';
+      } else if (!isFullscreen) {
+        player.requestFullscreen();
       } else {
-        updateMuteButton();
-        fullscreenBtn.style.display = '';
-        fullscreenBtn.textContent = '⛶ Fullscreen'; // ensure emoji is left
+        player.setMuted(true).then(function() {
+          updateActionButton();
+        });
       }
     });
 
-    // Listen for volume changes to bring back unmute button if muted again
-    player.on('volumechange', function(data) {
-      updateMuteButton();
+    player.on('fullscreenchange', function(data) {
+      updateActionButton();
     });
 
-    // Ensure video starts in 1080p (if available)
+    player.on('volumechange', function(data) {
+      updateActionButton();
+    });
+
     player.ready().then(function() {
-      // Hide the thumbnail when the player is ready
       thumbnail.style.opacity = '0';
       setTimeout(() => { thumbnail.style.display = 'none'; }, 500);
-      player.setQuality('1080p').catch(function() {
-        // fallback: do nothing if 1080p not available
-      });
+      player.setQuality('1080p').catch(function() {});
     });
   </script>
 </body>
