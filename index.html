@@ -142,7 +142,7 @@
     // Hide buttons when entering fullscreen, show when exiting if still muted
     player.on('fullscreenchange', function(data) {
       if (data.fullscreen) {
-        muteBtn.style.display = 'none';
+        // Only hide fullscreen button, keep mute button visible
         fullscreenBtn.style.display = 'none';
       } else {
         updateMuteButton();
