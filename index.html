@@ -22,13 +22,13 @@
       height: 100%;
     }
 
-    video {
+    #vimeoIframe {
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      border: none;
     }
 
-    #unmuteBtn, #fullscreenBtn {
+    #muteBtn, #fullscreenBtn {
       position: fixed;
       z-index: 10;
       padding: 15px 25px;
@@ -41,7 +41,7 @@
       transition: opacity 0.5s;
     }
 
-    #unmuteBtn {
+    #muteBtn {
       bottom: 80px;
       left: 50%;
       transform: translateX(-50%);
@@ -54,76 +54,108 @@
     }
 
     @media (max-width: 768px) {
-      #unmuteBtn, #fullscreenBtn {
+      #muteBtn, #fullscreenBtn {
         font-size: 1.5em;
         padding: 20px 30px;
       }
+    }
+
+    #thumbnailPlaceholder {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%;
+      height: 100%;
+      background: #222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 2em;
+      z-index: 20;
+      pointer-events: none;
+      transition: opacity 0.5s;
     }
   </style>
 </head>
 <body>
   <div id="videoContainer">
-    <video id="video" autoplay muted playsinline loop>
-      <source src="Examensfeier.mp4" type="video/mp4">
-    </video>
-    <button id="unmuteBtn">🔊 Tap to Unmute</button>
+    <div id="thumbnailPlaceholder">Loading...</div>
+    <iframe 
+      id="vimeoIframe"
+      src="https://player.vimeo.com/video/1085697260?autoplay=1&loop=1&muted=1&title=0&byline=0&portrait=0&quality=1080p&controls=0" 
+      frameborder="0" 
+      allow="autoplay; fullscreen; picture-in-picture" 
+      allowfullscreen
+      style="width: 100%; height: 100%;">
+    </iframe>
+    <button id="muteBtn">🔈 Unmute</button>
     <button id="fullscreenBtn">⛶ Fullscreen</button>
   </div>
-
+  <script src="https://player.vimeo.com/api/player.js"></script>
   <script>
-    const video = document.getElementById('video');
-    const unmuteBtn = document.getElementById('unmuteBtn');
+    const iframe = document.getElementById('vimeoIframe');
+    const player = new Vimeo.Player(iframe);
+    const muteBtn = document.getElementById('muteBtn');
     const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const thumbnail = document.getElementById('thumbnailPlaceholder');
 
-    // Unmute button logic
-    unmuteBtn.addEventListener('click', () => {
-      video.muted = false;
-      video.play().catch(console.error);
-      unmuteBtn.style.display = 'none';
-    });
-
-    // Fullscreen button logic
-    fullscreenBtn.addEventListener('click', () => {
-      const container = document.getElementById('videoContainer');
-      if (container.requestFullscreen) {
-        container.requestFullscreen();
-      } else if (container.webkitRequestFullscreen) {
-        container.webkitRequestFullscreen();
-      } else if (container.msRequestFullscreen) {
-        container.msRequestFullscreen();
+    // Set initial mute button state and show/hide buttons accordingly
+    function updateMuteButton(volume) {
+      if (volume === 0) {
+        muteBtn.textContent = '🔈 Unmute';
+        muteBtn.style.display = '';
+      } else {
+        muteBtn.textContent = '🔇 Mute';
+        muteBtn.style.display = 'none';
       }
-    });
-	document.addEventListener('fullscreenchange', () => {
-      fullscreenBtn.style.display = document.fullscreenElement ? 'none' : 'block';
+    }
+
+    player.getVolume().then(function(volume) {
+      updateMuteButton(volume);
+      fullscreenBtn.style.display = '';
     });
 
+    muteBtn.addEventListener('click', function() {
+      player.setVolume(1).then(function() {
+        updateMuteButton(1);
+        fullscreenBtn.style.display = '';
+      });
+    });
 
-    // Try autoplay unmuted if allowed
-    window.addEventListener('load', () => {
-      video.muted = false;
-      const playAttempt = video.play();
-      if (playAttempt !== undefined) {
-        playAttempt.catch(() => {
-          // Fallback to muted
-          video.muted = true;
-          video.play();
+    fullscreenBtn.addEventListener('click', function() {
+      player.requestFullscreen();
+    });
+
+    // Hide buttons when entering fullscreen, show when exiting if still muted
+    player.on('fullscreenchange', function(data) {
+      if (data.fullscreen) {
+        muteBtn.style.display = 'none';
+        fullscreenBtn.style.display = 'none';
+      } else {
+        player.getVolume().then(function(volume) {
+          updateMuteButton(volume);
+          fullscreenBtn.style.display = '';
         });
       }
     });
-	// Keyboard toggles
-	document.addEventListener('keydown', (e) => {
-      if (e.key.toLowerCase() === 'f') {
-        const container = document.getElementById('videoContainer');
-      if (!document.fullscreenElement) {
-        container.requestFullscreen?.();
-      } else {
-        document.exitFullscreen?.();
-      }
-      } else if (e.key.toLowerCase() === 'm') {
-        video.muted = !video.muted;
-        unmuteBtn.style.display = video.muted ? 'block' : 'none';
-      }
+
+    // Listen for volume changes to bring back unmute button if muted again
+    player.on('volumechange', function(data) {
+      player.getVolume().then(function(volume) {
+        updateMuteButton(volume);
+      });
+    });
+
+    // Ensure video starts in 1080p (if available)
+    player.ready().then(function() {
+      // Hide the thumbnail when the player is ready
+      thumbnail.style.opacity = '0';
+      setTimeout(() => { thumbnail.style.display = 'none'; }, 500);
+      player.setQuality('1080p').catch(function() {
+        // fallback: do nothing if 1080p not available
+      });
     });
   </script>
 </body>
+
 </html>
